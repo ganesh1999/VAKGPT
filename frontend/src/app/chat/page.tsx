@@ -29,7 +29,7 @@ export default function Page() {
       login(token);
       router.replace("/chat");
     }
-  }, []);
+  }, [login, router]);
 
   return (
     <SidebarProvider>

@@ -47,13 +47,14 @@ export default function Home() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <img
+              <Image
                 src="https://img.shields.io/github/stars/kk9393/VAKGPT?style=social"
                 alt="GitHub Repo stars"
+                width={100}
+                height={20}
               />
             </a>
           </div>
-
         </nav>
       </header>
       <section className="pt-6 pb-10 bg-gray-100">
@@ -124,9 +125,7 @@ export default function Home() {
 
         <main className="container mx-auto px-4 py-12">
           <section className="mb-16">
-            <h3 className="text-2xl font-bold mb-6">
-              Key Features of VAKGPT
-            </h3>
+            <h3 className="text-2xl font-bold mb-6">Key Features of VAKGPT</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
                 {
@@ -148,7 +147,7 @@ export default function Home() {
                   title: "Powered by LangChain",
                   description:
                     "VAKGPT is built on LangChain, enabling advanced capabilities, seamless integration with vector databases, and efficient handling of complex AI workflows.",
-                }
+                },
               ].map((feature, index) => (
                 <div key={index} className="bg-gray-100 p-6 rounded-lg">
                   <h4 className="text-xl font-semibold mb-2">
@@ -172,7 +171,8 @@ export default function Home() {
                     "VAKGPT is an open-source conversational AI platform designed to build and deploy AI chatbots. It provides a scalable, modular, and customizable framework for developers to create AI-driven conversational applications.",
                 },
                 {
-                  question: "How is VAKGPT different from other chatbot platforms?",
+                  question:
+                    "How is VAKGPT different from other chatbot platforms?",
                   answer:
                     "Unlike proprietary chatbot solutions, VAKGPT is open-source, allowing developers to customize and extend its functionalities. It also supports modular components, making it easy to integrate with various AI models and data sources.",
                 },
@@ -185,8 +185,7 @@ export default function Home() {
                   question: "How can I contribute to VAKGPT?",
                   answer:
                     "You can contribute to VAKGPT by submitting issues, creating pull requests, improving documentation, or suggesting new features. Visit the GitHub repository to get started with contributions.",
-                }
-
+                },
               ].map((faq, index) => (
                 <AccordionItem value={`item-${index}`} key={index}>
                   <AccordionTrigger className="text-left ">

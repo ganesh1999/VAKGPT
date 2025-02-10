@@ -1,3 +1,5 @@
+"use client"
+
 import { useAuth } from "@/app/context/AuthContext";
 import { NavMain } from "@/components/nav-main";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,7 @@ import {
 import { loginWithGoogle } from "@/lib/auth";
 import { Clock } from "lucide-react";
 import { NavUser } from "./nav-user";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Cookies from "js-cookie";
 
 type Session = string;
@@ -24,6 +26,20 @@ export function AppSidebar({
 }) {
   const { user, logout } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
+
+  const createNewSession = useCallback(() => {
+    const generateRandomString = (length: number) => {
+      const chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      return Array.from({ length }, () =>
+        chars.charAt(Math.floor(Math.random() * chars.length))
+      ).join("");
+    };
+  
+    const newSessionId = generateRandomString(20);
+    setSessions((prev) => [newSessionId, ...prev]);
+    setSelectedSession(newSessionId);
+  }, [setSessions, setSelectedSession]);
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -68,21 +84,7 @@ export function AppSidebar({
     };
 
     fetchSessions();
-  }, []);
-
-  const createNewSession = () => {
-    const generateRandomString = (length: number) => {
-      const chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      return Array.from({ length }, () =>
-        chars.charAt(Math.floor(Math.random() * chars.length))
-      ).join("");
-    };
-
-    const newSessionId = generateRandomString(20);
-    setSessions((prev) => [newSessionId, ...prev]); 
-    setSelectedSession(newSessionId);
-  };
+  }, [createNewSession, selectedSession, setSelectedSession]);
 
   return (
     <Sidebar collapsible="icon">

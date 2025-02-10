@@ -7,8 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -27,7 +25,7 @@ export function NavUser({
     email: string;
     profile_picture?: string;
   };
-  logout: any;
+  logout: () => void;
 }) {
   const { isMobile } = useSidebar();
 

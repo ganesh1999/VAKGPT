@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { ArrowUp, Globe, Paperclip, X } from "lucide-react";
 import { marked } from "marked";
@@ -13,6 +13,13 @@ interface Message {
   id: string;
   message: string;
   sender: "user" | "bot";
+}
+
+interface RawMessage {
+  id: string;
+  message: string;
+  sender: "ai" | "user";
+  timestamp: string;
 }
 
 // Props for `ChatInterface`
@@ -66,79 +73,88 @@ export function ChatInterface({ selectedSession }: ChatInterfaceProps) {
   const PopupBodyRef = useRef(null);
   const sendBtnRef = useRef<HTMLButtonElement>(null);
   const ongoingMessageIdRef = useRef<string | null>(null);
+
+  const fetchMessages = useCallback(
+    async (currentPage: number) => {
+      try {
+        setLoadingMessages(true);
+        const token = Cookies.get("token");
+  
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+  
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+  
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/session/get_session_chat?session_id=${selectedSession}&page=${currentPage}`,
+          { method: "GET", headers }
+        );
+  
+        if (!response.ok) {
+          throw new Error("Failed to fetch chat history");
+        }
+  
+        const data = await response.json();
+  
+        if (data?.messages.length === 0) {
+          setHasMoreMessages(false);
+          return;
+        }
+  
+        const formattedMessages: Message[] = data.messages
+          .reverse()
+          .map((msg: RawMessage) => ({
+            id: msg.id,
+            message:
+              msg.sender === "ai" ? marked.parse(msg.message) : msg.message,
+            timestamp: msg.timestamp,
+            sender: msg.sender === "ai" ? "bot" : "user",
+          }));
+  
+        if (currentPage === 1) {
+          // New session: reset messages
+          setMessages(formattedMessages);
+        } else {
+          // Pagination: prepend older messages to existing ones
+          setMessages((prevMessages) => [...formattedMessages, ...prevMessages]);
+        }
+  
+        setHasMoreMessages(data.pagination.has_next_page);
+      } catch (error) {
+        console.error("Error fetching chat history:", error);
+      } finally {
+        setLoadingMessages(false);
+      }
+    },
+    [selectedSession, setLoadingMessages, setHasMoreMessages, setMessages]
+  );
+  
   useEffect(() => {
     if (!selectedSession) return;
+
 
     // Clear messages and reset page when session changes
     setMessages([]);
     setPage(1);
     fetchMessages(1);
     HardScrollToCurrentMessage();
-  }, [selectedSession]);
+  }, [selectedSession, fetchMessages]);
 
   useEffect(() => {
     if (page > 1) {
       fetchMessages(page);
     }
-  }, [page]);
+  }, [page, fetchMessages]);
 
-  const fetchMessages = async (currentPage: number) => {
-    try {
-      setLoadingMessages(true);
-      const token = Cookies.get("token");
-
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/session/get_session_chat?session_id=${selectedSession}&page=${currentPage}`,
-        { method: "GET", headers }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch chat history");
-      }
-
-      const data = await response.json();
-
-      if (data?.messages.length === 0) {
-        setHasMoreMessages(false);
-        return;
-      }
-
-      const formattedMessages = data.messages.reverse().map((msg: any) => ({
-        id: msg.id,
-        message: msg.sender === "ai" ? marked.parse(msg.message) : msg.message,
-        timestamp: msg.timestamp,
-        sender: msg.sender === "ai" ? "bot" : "user",
-      }));
-
-      if (currentPage === 1) {
-        // New session: reset messages
-        setMessages(formattedMessages);
-      } else {
-        // Pagination: prepend older messages to existing ones
-        setMessages((prevMessages) => [...formattedMessages, ...prevMessages]);
-      }
-
-      setHasMoreMessages(data.pagination.has_next_page);
-    } catch (error) {
-      console.error("Error fetching chat history:", error);
-    } finally {
-      setLoadingMessages(false);
-    }
-  };
-
-  const loadMoreMessages = () => {
+  const loadMoreMessages = useCallback(() => {
     if (hasMoreMessages && !loadingMessages) {
       setPage((prevPage) => prevPage + 1);
     }
-  };
+  }, [hasMoreMessages, loadingMessages, setPage]);
+  
 
   // Prevent scrolling inside chat reference
   const handleChatRefScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -241,7 +257,7 @@ export function ChatInterface({ selectedSession }: ChatInterfaceProps) {
       const formData = new FormData();
       formData.append("message", message || "");
       formData.append("session_id", selectedSession || "");
-      formData.append("model", "deepseek-chat");
+      formData.append("model", "meta-llama/Meta-Llama-3.1-405B-Instruct");
 
       if (file) {
         formData.append("file", file);
@@ -320,33 +336,31 @@ export function ChatInterface({ selectedSession }: ChatInterfaceProps) {
     }
   };
 
-  // Function to smoothly scroll to the latest message
-  const SmoothScrollToCurrentMessage = () => {
+  const SmoothScrollToCurrentMessage = useCallback(() => {
     if (chatBodyRef.current && !userScrolledUp) {
       chatBodyRef.current.scrollTo({
         top: chatBodyRef.current.scrollHeight + 64,
       });
     }
-  };
-
-  // Function to detect if user has scrolled up
-  const handleScroll = () => {
+  }, [chatBodyRef, userScrolledUp]);
+  
+  const handleScroll = useCallback(() => {
     if (!chatBodyRef.current) return;
-
+  
     const { scrollTop, scrollHeight, clientHeight } = chatBodyRef.current;
-
+  
     // Detect user scrolling
     if (scrollTop + clientHeight + 15 < scrollHeight) {
       setUserScrolledUp(true);
     } else {
       setUserScrolledUp(false);
     }
-
+  
     // If scrolled to the top, load more messages
     if (scrollTop === 0) {
       loadMoreMessages();
     }
-  };
+  }, [chatBodyRef, setUserScrolledUp, loadMoreMessages]);
 
   // Attach scroll listener to chat body
   useEffect(() => {
@@ -362,7 +376,7 @@ export function ChatInterface({ selectedSession }: ChatInterfaceProps) {
         chatBody.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [messages]);
+  }, [messages, SmoothScrollToCurrentMessage, handleScroll, userScrolledUp]);
 
   // Toggle Web Search Tool
   const toggleWebSearchBtnState = () => {
@@ -525,7 +539,7 @@ const InputContainer: React.FC<InputContainerProps> = ({
   isWebSearchActive,
   handleFileChange,
   file,
-  clearFile, // ✅ Accept clearFile function
+  clearFile,
 }) => {
   const charCountClass =
     charCount > characterLimit
@@ -549,12 +563,11 @@ const InputContainer: React.FC<InputContainerProps> = ({
           onKeyDown={handleKeyDownInput}
         />
 
-        {/* ✅ Show File Name with Delete Option */}
         {file && (
           <div className="flex items-center space-x-2 my-2 text-sm w-max bg-gray-200 border py-1 px-2 rounded-full">
             <span>{file.name}</span>
             <button
-              onClick={clearFile} // ✅ Calls clearFile instead of passing null
+              onClick={clearFile}
               className="hover:text-red-500"
             >
               <X className="w-4 h-4 text-gray-500" />
