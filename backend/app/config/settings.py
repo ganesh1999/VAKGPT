@@ -5,6 +5,7 @@ load_dotenv()
 
 class Settings:
     MONGODB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
+    CORS_ORIGIN = os.getenv("CORS_ORIGIN")
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
     GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
